@@ -4,15 +4,16 @@ const redis = require("redis")
 const asy = require('async')
 const util = require("util")
 const cp = require('child_process')
+const config = require('./config')
 
 // variable definition
 const MAX_MAGIC_PAGE_NUMBER = 20
 let START_MAGIC_PAGE_NUMBER = 2
 
-const redis_host = process.env['redis.crawler']
-const videoList_queue_key = 'videoList_queue'
-const videoList_set_key = 'videoList_set'
-const videoInfo_queue_key = 'videoInfo_queue'
+const redis_host = process.env['SERVER_REDIS'] || 'localhost'
+const videoList_queue_key = config.redis.videoList_queue_key
+const videoList_set_key = config.redis.videoList_set_key
+const videoInfo_queue_key = config.redis.videoInfo_queue_key
 
 // promisify initialization
 Promise.promisifyAll(redis)
@@ -56,13 +57,16 @@ async function Run() {
         try {
             // Progress speed control
             if (list_q.length() > commander.waiting){
-                Promise.delay(1000)
+                await Promise.delay(1000)
                 continue
             }
 
             // Retrieve a job from video_list queue of redis client
             let list_task = await redis_client.rpopAsync(videoList_queue_key)
-            if (!list_task) console.log(`Video list job have finished`)
+            if (!list_task) {
+                console.log(`Video list job have finished`)
+                break
+            }
             
             // push this task to our queue
             list_q.push(JSON.parse(list_task))
@@ -93,7 +97,7 @@ async function ListWorker(task) {
             // minus one of its try times, push it into redis queue again if its try times haven't been exhausted
             if (task.tries-- != 0) return redis_client.lpush(videoList_queue_key, JSON.stringify(task))
 
-            return console.log(`Get Page ${task.page_number} failed after ${command.tries} times`)
+            return console.log(`Get Page ${task.page_number} failed after ${commander.tries} times`)
         }
 
         // Parse video-list-crawler
@@ -108,7 +112,7 @@ async function parse_ListWorker_result(crawler_output){
         // add this url to video queue if current video url have not been resolved
         if (!await redis_client.sismemberAsync(videoList_set_key, video_url)){
             redis_client.sadd(videoList_set_key, video_url)
-            redis_client.lpush(videoInfo_queue_key, { video_url })
+            redis_client.lpush(videoInfo_queue_key, JSON.stringify({ url:video_url, tries:commander.tries }))
         }
     }
 }

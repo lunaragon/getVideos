@@ -14,8 +14,7 @@ const VideoMetaSchema = new mongoose.Schema({
         required: true
     },
     categories: {
-        type: [String],
-        required: true
+        type: [String]
     }
 })
 

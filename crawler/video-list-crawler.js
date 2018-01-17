@@ -3,8 +3,7 @@ const nightmare = Nightmare({show: true});
 const fs = require('fs-extra')
 const path = require('path')
 
-
-const config = fs.readJSONSync(path.join(__dirname, 'config.json'))
+const config = require('./config')
 const host = config.host
 
 const pageNumber = process.env['PAGE_NUMBER']
@@ -51,7 +50,7 @@ async function get_video_url_by_page(page_url) {
         })
         .end()
         .then((urls) => {
-            crawler_output.urls = urls
+            crawler_output.urls = urls.map(v=>`${host}${v}`)
         })
         .catch((error) => {
             crawler_output.status = 'error',

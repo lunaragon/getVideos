@@ -1,2 +1,5 @@
 node_modules
+crawler/node_modules
 temp*
+sync-config.json
+video_download

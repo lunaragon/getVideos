@@ -5,15 +5,18 @@ const asy = require('async')
 const util = require("util")
 const cp = require('child_process')
 const mongoose = require('mongoose')
+
 const VideoMetaModel = require('./VideoSchema')
+const config = require('./config')
 
 // variable definition
-const mongodb_host = process.env['mongo.crawler']
-const mongo_uri = `mongodb://${mongodb_host}/porn_video`
+const mongodb_host = process.env['SERVER_MONGO'] || 'localhost'
+const mongo_uri = `mongodb://${mongodb_host}/${config.db}`
 
-const redis_host = process.env['redis.crawler']
-const videoInfo_queue_key = 'videoInfo_queue'
-const videoSource_set_key = 'videoSource_set'
+const redis_host = process.env['SERVER_REDIS'] || 'localhost'
+const videoInfo_queue_key = config.redis.videoInfo_queue_key
+const videoSource_set_key = config.redis.videoSource_set_key
+const videoSource_queue_key = config.redis.videoSource_queue_key
 
 // promisify initialization
 Promise.promisifyAll(redis)
@@ -50,7 +53,7 @@ async function Run() {
         try {
             // Progress speed control
             if (video_q.length() > commander.waiting){
-                Promise.delay(1000)
+                await Promise.delay(1000)
                 continue
             }
 
@@ -58,7 +61,8 @@ async function Run() {
             let video_info_task = await redis_client.rpopAsync(videoInfo_queue_key)
             if (!video_info_task){
                 console.log('Failed to get video url now, delay 10s to retry')
-                Promise.delay(10 * 1000)
+                await Promise.delay(10 * 1000)
+                continue
             } 
             
             // push this task to our queue
@@ -87,13 +91,13 @@ async function VideoWorker(task) {
         // current task failed
         if (crawler_output.status != 'success'){
             // minus one of its try times, push it into redis queue again if its try times haven't been exhausted
-            if (task.tries-- != 0) return redis_client.lpush(videoList_queue_key, JSON.stringify(task))
+            if (task.tries-- != 0) return redis_client.lpush(videoInfo_queue_key, JSON.stringify(task))
 
-            return console.log(`Get video ${task.url} failed after ${command.tries} times`)
+            return console.log(`Get video ${task.url} failed after ${task.tries} times`)
         }
 
         // Parse video-list-crawler
-        parse_VideoWorker_result(crawler_output)
+        parse_VideoWorker_result(crawler_output.video)
     } catch (error) {
         console.log(error)
     }
@@ -105,10 +109,19 @@ async function parse_VideoWorker_result(video){
             return // do nothing
         else{
             redis_client.sadd(videoSource_set_key, video.url)
+            redis_client.lpush(videoSource_queue_key, JSON.stringify({
+                download_url : video.url,
+                name : video.name
+            }))
             // push this infomration into database
             new VideoMetaModel({
                 name:video.name, url:video.url, categories:video.categories, base_url:video.base_url
             }).save()
+            // await VideoMetaModel.findOneAndUpdate({url:video.url}, {
+            //     name:video.name, url:video.url, categories:video.categories, base_url:video.base_url
+            // },{
+            //     upsert:true
+            // })
             console.log(video)
         }
 }

@@ -13,6 +13,7 @@
     "bluebird": "^3.5.1",
     "cheerio": "^1.0.0-rc.2",
     "commander": "^2.13.0",
+    "crypto": "^1.0.1",
     "fs-extra": "^5.0.0",
     "mongoose": "^4.13.9",
     "nightmare": "^2.10.0",
