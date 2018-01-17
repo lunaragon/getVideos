@@ -1,12 +1,30 @@
 const Nightmare = require('nightmare');
-const nightmare = Nightmare({
-    show: true
-});
+const nightmare = Nightmare({show: true});
 
 const video_page_url = process.env['VIDEO_URL']
 
-let video = {}
+/*
+* when other process get this output, he should check status first
+* use output.urls only status is equal to 'success'
+* when something get error, error will be set in output.error and status
+* will set to 'error'
+*/ 
+const crawler_output = {
+    status:'success'
+}
 
+Run()
+
+// ========================================================================
+async function Run() {
+    await get_video_info(`${video_page_url}`)
+    //await get_video_info(`http://www.pornhub.com/view_video.php?viewkey=ph5a0cc1ba62145`)
+    
+    // output encode json string
+    console.log(JSON.stringify(crawler_output))
+}
+
+// use nightmare as crawler-backend
 async function get_video_info(video_page_url) {
     await nightmare
         .goto(video_page_url)
@@ -30,20 +48,14 @@ async function get_video_info(video_page_url) {
         })
         .end()
         .then((video_info) => {
-            video = video_info
-            video.base_url = video_page_url
+            crawler_output.video = video_info
+            crawler_output.video.base_url = video_page_url
         })
         .catch((error) => {
-            console.error('Search failed:', error);
+            crawler_output.status = 'error'
+            crawler_output.error = error
         });
 }
 
-async function Run() {
-    await get_video_info(`${video_page_url}`)
-
-    console.log(JSON.stringify(video))
-}
-
-Run()
 
 

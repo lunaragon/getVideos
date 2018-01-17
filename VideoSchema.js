@@ -8,6 +8,7 @@ const VideoMetaSchema = new mongoose.Schema({
         minlength: 1,
         maxlength: 255
     },
+    base_url:String,
     url: {
         type: String,
         required: true
