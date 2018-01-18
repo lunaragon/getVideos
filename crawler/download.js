@@ -68,9 +68,9 @@ async function Run() {
 async function DownloadWorker(task) {
     try{
         // open a write stream and download url
-        const stream = fs.createWriteStream(`${config.download_path}/${md5(task.download_url)}.mp4`);
-        const req = request.get(task.download_url);
-        req.pipe(stream);
+        const stream = fs.createWriteStream(`${config.download_path}/${md5(task.download_url)}.mp4`)
+        const req = request.get(task.download_url)
+        req.pipe(stream)
         console.log(`Download video ${task.download_url} complete.`)
     }catch(error){
         console.log(error)

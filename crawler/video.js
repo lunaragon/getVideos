@@ -117,11 +117,6 @@ async function parse_VideoWorker_result(video){
             new VideoMetaModel({
                 name:video.name, url:video.url, categories:video.categories, base_url:video.base_url
             }).save()
-            // await VideoMetaModel.findOneAndUpdate({url:video.url}, {
-            //     name:video.name, url:video.url, categories:video.categories, base_url:video.base_url
-            // },{
-            //     upsert:true
-            // })
             console.log(video)
         }
 }
