@@ -1,7 +1,9 @@
+# 很久没有更新了, 现在不能用了...
+
 # Requirements
 
  * docker
- * node (v8.x)
+ * node (v8.x+)
 
 # Start
 1. download and install dependency
